@@ -1,0 +1,25 @@
+#' Contraceptive Method Choice in 1473 Indonesian Women (1987)
+#'
+#'This dataset is a subset of the 1987 National Indonesia Contraceptive Prevalence Survey
+#' 
+#' Variables:
+#' \itemize{
+#' \item age: Wife's age (continuous)
+#' \item wifeEdu: Wife's education (ordinal)      1=low, 2, 3, 4=high
+#' \item husbEdu: Husband's education (ordinal)   1=low, 2, 3, 4=high
+#' \item nrChild: Number of children ever born   (count)
+#' \item wifeRel: Wife's religion  (binary)       0=Non-Islam, 1=Islam
+#' \item wifeWork: Wife's now working? (binary)        0=Yes, 1=No
+#' \item husbOcc: Husband's occupation (categorical)    1, 2, 3, 4
+#' \item solIndex: Standard-of-living index (ordinal)   1=low, 2, 3, 4=high
+#' \item mediaExp: Media exposure  (binary)  0=Good, 1=Not good
+#' \item contraceptive: Contraceptive method used (class attribute)  1=No use
+#'                                                         2=Long term
+#'                                                         3=Short term
+#' }
+#' 
+#'
+#' @format A 1473 x 10 data frame 
+#' @source https://archive.ics.uci.edu/ml/datasets/Contraceptive+Method+Choice
+#' @name cmc
+NULL
