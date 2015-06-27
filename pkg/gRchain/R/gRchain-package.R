@@ -45,11 +45,18 @@
 #' #this is a 5 block model with age being
 #' #purely explanatory (block 5) and nRchild and
 #' #contraceptive being purely the targets (block 1)
-#' cmc_prep 
-#' res_cmc <- coxwer(cmc_prep, cmc)
+#' #Using a var.frame
+#' cmc_prep
+#' res_cmc <- coxwer(var.frame=cmc_prep, data=cmc)
 #' print(res_cmc) #Prints adjacency matrix
 #' summary(res_cmc,target="contraceptive") #model path to "contraceptive" as the target variable
 #' plot(res_cmc)
+#'
+#'#Using a formula
+# res_cmc2<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, data=cmc) #vartype is automatically detected which is crude for non-factors
+#'#Using a formula and specifying the vartype
+#'#(so the algorithm can use better models for the metric/continuous variables) 
+# res_cmc3<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, vartype=c("cate","count","bin","ord","bin","bin","ord","ord","ord","metric"), data=cmc)
 #' 
 #' @docType package
 #' @name gRchain

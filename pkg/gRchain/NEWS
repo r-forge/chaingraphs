@@ -1,1 +1,4 @@
+
+0.0-2: Added formula interface and a way to scale the inputs variables. Old way with var.frames is still supported; new argument vartypes which allows to specifiy other types as the automatic detection of vartypes for metric variables is crude.  
+
 0.0-1: Includes coxwer, prep_coxwer and methods, added cmc data and cmc_prep. 

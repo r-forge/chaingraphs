@@ -1,6 +1,6 @@
 #' the fitting wrapper for coxwer
 #'
-#' @param formula an R formula
+#' @param fmla an R fmla
 #' @param data the data frame to take the variables from
 #' @param type what is the type of the target variable
 #' @param currfamily current family for the glm
@@ -8,20 +8,20 @@
 #' 
 #' @return a fitted model of either class multinom (categorical type) or polr (ordinal type) or glm.nb (count type) or glm (for type being metric or positive or so)
 #' @import MASS nnet
-fitfunc <- function(formula, data=data, type, currfamily=currfamily,...)
+fitfunc <- function(fmla, data=data, type, currfamily=currfamily,...)
   {
      if (type == "categorical")
        {
-            mod <- nnet::multinom(formula,data=data,trace=FALSE,Hess=TRUE,MaxNWts = dim(data)[1]+1,model=TRUE,...)
+            mod <- nnet::multinom(fmla,data=data,trace=FALSE,Hess=TRUE,MaxNWts = dim(data)[1]+1,model=TRUE,...)
        } else if (type == "ordinal")
          {
-            mod <- MASS::polr(formula,data=data,Hess=TRUE,...)
+            mod <- MASS::polr(fmla,data=data,Hess=TRUE,...)
          } else if (type == "odcount")
            {
-            mod <- MASS::glm.nb(formula,data=data,...) 
+            mod <- MASS::glm.nb(fmla,data=data,...) 
          } else
            {
-            mod <- stats::glm(formula,data=data,family=currfamily,...)
+            mod <- stats::glm(fmla,data=data,family=currfamily,...)
         }       
    mod
    }
@@ -29,9 +29,12 @@ fitfunc <- function(formula, data=data, type, currfamily=currfamily,...)
 
 #' A function to fit a block recursive chain graph model in R following the outlines of Cox & Wermuth 1996 and Caputo et al 1997; some adaptions made by us
 #'
-#' @param var.frame A variable.frame with the following structure: First column are the variable names, second column are the variable types (one of categorical, ordinal, continuous, binary, count, odcount (overdispersed count), gamma or invgaussian, see also \code{\link{prep_coxwer}}), third column are the block which are labeled from left to right increasingly, so the left most block is 1 and then 2 and so forth; the block with purely dependent variable is block 1 the block with purely explanatory variables is the right most block. For an exmaple see \code{\link{cmc_prep}}
-#' @param data the data frame conating the varibales in var.frame 
-#' @param autodetect flag whether the function should derive the variable type for the R object (TRUE if so); will override user specifications in var.frame; defaults to FALSE
+#'
+#' @param fmla A formula listing the block structure and the variables in each block. It needs be of the form Block1Vars ~ Block2Vars ~ Block3Vars and the variables per block are separated by +. So a formula y1+y2 ~ x1+x2 ~ z1~z2 refers to the model wehere y1 and y2 are in block 1 and are purely dependent variables, x1 and x2 are in block 2 and are intermediate (i.e. predictors for block 1 and dependents for block 3) and z1 and z3 are in block 3 and are purely explanatory. Internally, the var.frame is built from the formula and the vartypes is automaticaly detected (but that is crude).
+#' @param data the data frame containing the variables in var.frame or formula 
+#' @param var.frame If no formula is given a variable.frame with the following structure: First column are the variable names, second column are the variable types (one of categorical, ordinal, continuous, binary, count, odcount (overdispersed count), gamma or invgaussian, see also \code{\link{prep_coxwer}}), third column are the block which are labeled from left to right increasingly, so the left most block is 1 and then 2 and so forth; the block with purely dependent variable is block 1 the block with purely explanatory variables is the right most block. For an example see \code{\link{cmc_prep}}.
+#' @param vartype (optional) the types of variables in data and formula; if formula is given but vartypes is not, the function attempts to detect the type of variable and will select one of ordinal, categorcial and continuous. The order of types in vartype is expected to be the order of variables in formula (from left to right) or in var.frame from top to bottoom 
+#' @param automatch flag whether the function should match the variable typeto the data object (TRUE if so); will override user specifications in var.frame; defaults to FALSE
 #' @param pen the penalty applied to the information criterion for variable selection; defaults to #parameters*log(n) (BIC); -2 would be AIC
 #' @param signif the significance level used in the tests for inclusion of higher order effects; defaults to 0.01
 #' @param contrasts which contrasts to use for ordinal and nominal predictors; defaults to treatment contrasts all around 
@@ -46,18 +49,16 @@ fitfunc <- function(formula, data=data, type, currfamily=currfamily,...)
 #' @export
 #' @seealso \code{\link{prep_coxwer}} \code{\link{cmc_prep}}
 #' 
-coxwer<-function(var.frame, data, autodetect=FALSE, pen, signif=0.01, contrasts=c("contr.treatment", "contr.treatment"), scalepredictors=c("no","center","scale","normalize"),silent=FALSE, restr=NULL,adjfile=NULL,...){
-#autodetect means that variable type is automatically detected from var.type
+coxwer<-function(fmla, data, var.frame, vartype, automatch=FALSE, pen, signif=0.01, contrasts=c("contr.treatment", "contr.treatment"), scalepredictors=c("no","center","scale","normalize"),silent=FALSE, restr=NULL, adjfile=NULL,...){
+#means that variable type is automatically detected from var.type
     
 #FIXME: Implement the correction as suggested by Stat Med. 1991 May;10(5):697-709.The effects of transformations and preliminary tests for non-linearity in regression. Grambsch PM, O'Brien PC
-#FIXME Formula interface? ask Achim/marco how they thought to do that
-#FIXME Use association within blocks rather than regression and inverse regression within block  
+#FIXME Use association within blocks rather than regression and inverse regression within block?  
 #FIXME: Overall model fit index
 #FIXME: Add Survreg and beta etc.  
 #FIXME: add AIC instead of p vals?
 #FIXME: output such that we have CIs attached
 #FIXME: no $ reference but [[""]]
-#FIXME: normalizing input choice
 #FIXME: perhaps use a bigger pval as a false positive is less of a problem if we later do stepAIC
 #FIXME: Add variable selection by L1 regularization next to stepAIC
 #FIXME: Make var.frame$type such that match.arg also works with factors
@@ -68,15 +69,68 @@ coxwer<-function(var.frame, data, autodetect=FALSE, pen, signif=0.01, contrasts=
 #require(nnet)
 #stopifnot(require(MASS))
 
+findtype <- function(name,data)
+    {
+    #crude matching of variable type based on the appearance in the data frame
+        #unordered factor or character vector with > 2levels -> categorical
+        #unordered factor or charcter vector with 2 levels -> binary
+        #ordered factor -> ordinal
+        #else metric
+    vari <- data[[name]]
+    type <- "metric"
+    if(is.character(vari) & length(unique(vari))>2) type <- "categorical"
+    if(is.character(vari) & length(unique(vari))<3) type <- "binary"
+    if(is.factor(vari) & nlevels(vari)>2) type <- "categorical"
+    if(is.factor(vari) & nlevels(vari)<3) type <- "binary"
+    if(is.ordered(vari)) type <- "ordinal"
+#    if(is.integer(vari) & !any(vari)<1) type <- "odcount"
+    type           
+    }
+    
+parse_cwformula <- function(fmla,data)
+    {
+     #parse the formula object that must look like
+     #block1var1 + block1var2 + ... ~  block2var1 + block2var2 + ... ~ block3var1 + block3var2 ...
+     #into a var.frame data.frame   
+     f1 <- Reduce(paste, deparse(fmla))
+     tmp1 <- unlist(strsplit(f1,"~",fixed=TRUE))
+     nrblocks <-1:length(tmp1)
+     tmp1 <- gsub(" ","",tmp1)
+     tmp2 <- strsplit(tmp1,"+",fixed=TRUE)
+     varnames <- unlist(tmp2) 
+     blcklength <- unlist(lapply(tmp2,length))
+     blocks <- rep(nrblocks,times=blcklength)
+     #automatically matches the type
+     vartype <- sapply(varnames,function(x) findtype(x,data))
+     var.frame <- data.frame(type=vartype,block=blocks,stringsAsFactors=FALSE)
+     rownames(var.frame) <- varnames
+     var.frame
+    }
+
+if(missing(var.frame) && missing(fmla)) stop("One of 'fmla' or 'var.frame' must be given.") 
+
+#If formula is given but no var.frame then parse formula; if vartype is given use that too 
+if(!missing(fmla) && missing(var.frame))
+    {
+        var.frame <- parse_cwformula(fmla,data)
+        #If vartype is given override the autodetect
+        if(!missing(vartype)) var.frame$type <- vartype
+    }
+
+#If var.frame is given and vartype is given override the type variable in var.frame
+if(!missing(var.frame) && !missing(vartype)) var.frame$type <- vartype
+
+#Else if var.frame is given and no vartype use only varframe
+
 var.frame <- na.omit(var.frame)
 vf <- var.frame
 nblocks <- max(var.frame$block)
 data<-data[,rownames(var.frame)]
 
-var.frame$type <- unlist(lapply(as.character(var.frame$type), function(i) match.arg(i, c("binary", "categorical", "continuous", "count", "ordinal","odcount","gamma","invgaussian"))))
-### CHANGE KG: var.frame$type could also be a factor
-if (isTRUE(autodetect)) { 
-facs<-grep(c("binary|categorical"),var.frame$type)    
+var.frame$type <- unlist(lapply(as.character(var.frame$type), function(i) match.arg(i, c("binary", "categorical", "continuous", "count", "ordinal","odcount","gamma","invgaussian","factor","metric"))))
+
+if (isTRUE(automatch)) { 
+facs<-grep(c("binary|categorical|factor"),var.frame$type)    
 for (i in facs) data[,i]<-factor(data[,i])
 ords<-grep(c("ordinal"),var.frame$type) 
 for (i in ords) data[,i]<-factor(data[,i],ordered=TRUE)
@@ -133,9 +187,9 @@ for (blocks in 1:nblocks){
 
           curr.type <- var.frame[curr.target.name,"type"]
 
-          if(curr.type=="continuous")
+          if(curr.type=="continuous" | curr.type=="metric" )
             {
-              warning(paste("Model for continuous variable",curr.target.name,"is not specified. Ordinary least squares estimation is used by default."))
+              warning(paste("Model for continuous/metric variable",curr.target.name,"is not specified. Ordinary least squares estimation is used by default."))
               curr.type <- "gaussian"
             }          
 
@@ -160,7 +214,7 @@ for (blocks in 1:nblocks){
               curr.test <- "Chisq"
               curr.p <- "Pr(Chisq)"
           } else if (curr.type == "gaussian"){
-              curr.mod <- "gaussian linear"
+              curr.mod <- "ordinary least squares"
               currfamily <- "gaussian"
               curr.test <- "F"
               curr.p <- "Pr(F)"
@@ -196,12 +250,8 @@ for (blocks in 1:nblocks){
           else
              curr.pred<-na.omit(colnames(restr)[(restr[,curr.target.name]>0) & (var.frame$wblock > 0)]  )
 
-          ##dat<-data[,var.frame$wblock > 0, drop=FALSE]
           dat<-data[,curr.pred, drop=FALSE]
           dat<-dat[,-grep(curr.target.name,names(dat)),drop=FALSE]
-          
-          #dat<-data[,var.frame$wblock > 0, drop=FALSE]
-          #dat<-dat[,-grep(curr.target.name,names(dat)),drop=FALSE]
 
           if(missing(pen)) pen <- log(nrow(dat))  
           ## current model selection
@@ -218,10 +268,8 @@ for (blocks in 1:nblocks){
           # logical vector with TRUE for continuous variables
           ismetr<-!isfac
           # construct formula for quadratic terms for continuous predictors
-          #RH used the construction var1+poly(var1,2)[,2] Instead of poly(var1,2)[,1]+poly(var1,2)[,2] (full orthogonal) or var1+I(var1) (non orthogonal). I think that it is quite clever. poly(x,2)[,2] is orthogonal to the degree 0, so it's estimation is independent of the reference; as we want to get rid of it orthoganilty there is welcome. But we don't want x to be orthogonal to the baseline, so no use of poly(x,2)[,2] as well.   
+          #RH used the construction var1+poly(var1,2)[,2] Instead of poly(var1,2)[,1]+poly(var1,2)[,2] (full orthogonal) or var1+I(var1) (non orthogonal). I think that it is quite clever. poly(x,2)[,2] is orthogonal to the degree 0, so it's estimation is independent of the reference; as we want to get rid of it orthoganility there is welcome. But we don't want x to be orthogonal to the baseline, so no use of poly(x,2)[,2] as well.   
           if (any(ismetr)){
-            #metr.varnames <- paste("I(",names(dat)[ismetr],"^2)",sep="")
-            # I(poly(x, 2)[,2]) orthogonal poynomials
             metr.varnames <- paste("I(poly(",names(dat)[ismetr],",2)[,2])",sep="")
             f.qmetr <- paste("+",paste(metr.varnames,sep="",collapse="+"),sep="")
           } else {
@@ -229,17 +277,6 @@ for (blocks in 1:nblocks){
           }
 
           #FIXME: Here RH wanted to calcuate quadratic effects for ordered factors; DOES NOT WORK! Possible remedy: orth poly contrasts and use the quadratic from there; I don't think that is clever. Current solution: Default treats them as dummies. The user can supply contr.poly if she wants, but there is no variable selection for the higher order polynomials. I included this because it may help with model checking for the user, but I'd avoid using these contrasts.     
-          # logical vector with TRUE for ordered factors   
-          #isord<-unlist(lapply(dat, is.ordered))
-          # construct formula for quadratic terms for ordinal predictors
-          #if (any(isord)){
-          #  ord.varnames <- paste("I(poly(",names(dat)[isord],",2)[,2])",sep="") #CHANGE TR
-          #RH  ord.varnames <- paste("poly(",names(dat)[isord],",2)",sep="")
-          #  f.qord <- paste("+",paste(ord.varnames,sep="",collapse="+"),sep="")
-          #RH  f.qord <- paste(ord.varnames,sep="",collapse="+")
-          #} else {
-          #    f.qord <- ""
-          #}
           
           f.qord <- ""
 
@@ -250,9 +287,8 @@ for (blocks in 1:nblocks){
 
           # check for non-linearities
           if (f.qall != ""){
-            qtframe<-addterm(mod,scope=formula(paste("~.",f.qall,collapse="")),test=curr.test,data=dat) #CHANGE TR added addterm instead of add1
+            qtframe<-addterm(mod,scope=formula(paste("~.",f.qall,collapse="")),test=curr.test,data=dat) 
             qterms<-rownames(qtframe[qtframe[[curr.p]]<signif,])[-1] # first term is NA
-
             qterms<-gsub("\\[, 2\\]","",qterms)# replace significant 2nd-order effects with whole polynomial
           } else {
             qterms <- NULL
@@ -262,15 +298,14 @@ for (blocks in 1:nblocks){
           if (length(qterms)>0) {
             f.qt <- paste("+",paste(qterms,sep="",collapse="+"),sep="")
           } else {
-            f.qt <- ""   #CHANGE: TR made all the curly brackets here as it threw an error in interactive mode
-                         #CHANGE: TR change f.qt<-"" form f.qt=""
+            f.qt <- ""   
           }
 
           # check for interactions
           if (length(attr(mod$terms,"term.labels")) < 2){
              iterms <- NULL # no interactions for less than 2 predictors
           } else {
-             iframe<-addterm(mod,scope=~.^2,test=curr.test) #CHANGE TR addterm
+             iframe<-addterm(mod,scope=~.^2,test=curr.test) 
              # remove terms with df=0
              iframe<-iframe[iframe[["Df"]]>0,]
              iterms<-rownames(iframe[iframe[[curr.p]]<signif,])[-1] # first term is NA
@@ -280,8 +315,7 @@ for (blocks in 1:nblocks){
           if (length(iterms)>0) {
             f.it <- paste("+",paste(iterms,sep="",collapse="+"),sep="")
           } else {
-            f.it <- ""    #CHANGE: TR made all the curly brackets here as it threw an error in interactive mode
-                      #CHANGE: TR f.it<-""
+            f.it <- ""   
           }
 
           f.step2 <- formula(paste(f, f.qt, f.it))
@@ -291,10 +325,8 @@ for (blocks in 1:nblocks){
           resback<-stepAIC(model, k=pen,trace=0)#, trace=AICtrace)
 
           ## re-enter interactions for remaining variables
-         #RH rbterms<-attr(attr(resback$model,"terms"),"term.labels")
-         #RH rborder<-attr(attr(resback$model,"terms"),"order")
-          rbterms<-attr(resback$terms,"term.labels")   #CHANGE: TR multinom needs this
-          rborder<-attr(resback$terms,"order")   #CHANGE: TR  multinom needs this 
+          rbterms<-attr(resback$terms,"term.labels")   
+          rborder<-attr(resback$terms,"order")   
           rbterms<-rbterms[rborder==1]
 
 
@@ -305,16 +337,14 @@ for (blocks in 1:nblocks){
           if (length(rbterms)>0){
               f.ia <- paste("~ . +(",paste(rbterms,sep="",collapse="+"),")^2",sep="")
           } else {
-              f.ia <- "~ ." #CHANGE: TR made all the curly brackets here as it threw an error in interactive mode
+              f.ia <- "~ ." 
           }
-
+          
           ## check for remaining interactions
           mod2 <- update(resback,f.ia)
           mod3<-stepAIC(mod2, k=pen, trace=0)# trace=AICtrace)
 
           ## re-enter quadratic terms for remaining variables
-          #RH m3terms<-attr(attr(mod3$model,"terms"),"term.labels")
-          #RH m3order<-attr(attr(mod3$model,"terms"),"order")
           m3terms<-attr(mod3$terms,"term.labels")
           m3order<-attr(mod3$terms,"order")
           m3terms<-m3terms[m3order==1]
@@ -346,10 +376,8 @@ for (blocks in 1:nblocks){
           modList<-c(modList,modListElement)
 
           ## extract final model terms 
-          #RH  mfterms<-attr(attr(modfinal$model,"terms"),"term.labels")
-          #RH  mforder<-attr(attr(modfinal$model,"terms"),"order")
-          mfterms <- attr(modfinal$terms,"term.labels") #CHANGE: TR multinom has no attr(attr(modfinal$model,"terms"),"term.labels")
-          mforder <- attr(modfinal$terms,"order")  #CHANGE: TR multinom has no attr(attr(modfinal$model,"terms"),"order")
+          mfterms <- attr(modfinal$terms,"term.labels")
+          mforder <- attr(modfinal$terms,"order")  
           mfterms<-mfterms[mforder==1]
 
           mfterms <- gsub("I\\(poly\\(","",mfterms)

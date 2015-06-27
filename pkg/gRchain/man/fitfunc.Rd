@@ -4,10 +4,10 @@
 \alias{fitfunc}
 \title{the fitting wrapper for coxwer}
 \usage{
-fitfunc(formula, data = data, type, currfamily = currfamily, ...)
+fitfunc(fmla, data = data, type, currfamily = currfamily, ...)
 }
 \arguments{
-\item{formula}{an R formula}
+\item{fmla}{an R fmla}
 
 \item{data}{the data frame to take the variables from}
 

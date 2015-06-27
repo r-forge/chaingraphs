@@ -49,10 +49,15 @@ data(cmc_prep)
 #this is a 5 block model with age being
 #purely explanatory (block 5) and nRchild and
 #contraceptive being purely the targets (block 1)
+#Using a var.frame
 cmc_prep
-res_cmc <- coxwer(cmc_prep, cmc)
+res_cmc <- coxwer(var.frame=cmc_prep, data=cmc)
 print(res_cmc) #Prints adjacency matrix
 summary(res_cmc,target="contraceptive") #model path to "contraceptive" as the target variable
 plot(res_cmc)
+
+#Using a formula
+#Using a formula and specifying the vartype
+#(so the algorithm can use better models for the metric/continuous variables)
 }
 

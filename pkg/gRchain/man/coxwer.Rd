@@ -4,17 +4,21 @@
 \alias{coxwer}
 \title{A function to fit a block recursive chain graph model in R following the outlines of Cox & Wermuth 1996 and Caputo et al 1997; some adaptions made by us}
 \usage{
-coxwer(var.frame, data, autodetect = FALSE, pen, signif = 0.01,
-  contrasts = c("contr.treatment", "contr.treatment"),
+coxwer(fmla, data, var.frame, vartype, automatch = FALSE, pen,
+  signif = 0.01, contrasts = c("contr.treatment", "contr.treatment"),
   scalepredictors = c("no", "center", "scale", "normalize"), silent = FALSE,
   restr = NULL, adjfile = NULL, ...)
 }
 \arguments{
-\item{var.frame}{A variable.frame with the following structure: First column are the variable names, second column are the variable types (one of categorical, ordinal, continuous, binary, count, odcount (overdispersed count), gamma or invgaussian, see also \code{\link{prep_coxwer}}), third column are the block which are labeled from left to right increasingly, so the left most block is 1 and then 2 and so forth; the block with purely dependent variable is block 1 the block with purely explanatory variables is the right most block. For an exmaple see \code{\link{cmc_prep}}}
+\item{fmla}{A formula listing the block structure and the variables in each block. It needs be of the form Block1Vars ~ Block2Vars ~ Block3Vars and the variables per block are separated by +. So a formula y1+y2 ~ x1+x2 ~ z1~z2 refers to the model wehere y1 and y2 are in block 1 and are purely dependent variables, x1 and x2 are in block 2 and are intermediate (i.e. predictors for block 1 and dependents for block 3) and z1 and z3 are in block 3 and are purely explanatory. Internally, the var.frame is built from the formula and the vartypes is automaticaly detected (but that is crude).}
 
-\item{data}{the data frame conating the varibales in var.frame}
+\item{data}{the data frame containing the variables in var.frame or formula}
 
-\item{autodetect}{flag whether the function should derive the variable type for the R object (TRUE if so); will override user specifications in var.frame; defaults to FALSE}
+\item{var.frame}{If no formula is given a variable.frame with the following structure: First column are the variable names, second column are the variable types (one of categorical, ordinal, continuous, binary, count, odcount (overdispersed count), gamma or invgaussian, see also \code{\link{prep_coxwer}}), third column are the block which are labeled from left to right increasingly, so the left most block is 1 and then 2 and so forth; the block with purely dependent variable is block 1 the block with purely explanatory variables is the right most block. For an example see \code{\link{cmc_prep}}.}
+
+\item{vartype}{(optional) the types of variables in data and formula; if formula is given but vartypes is not, the function attempts to detect the type of variable and will select one of ordinal, categorcial and continuous. The order of types in vartype is expected to be the order of variables in formula (from left to right) or in var.frame from top to bottoom}
+
+\item{automatch}{flag whether the function should match the variable typeto the data object (TRUE if so); will override user specifications in var.frame; defaults to FALSE}
 
 \item{pen}{the penalty applied to the information criterion for variable selection; defaults to #parameters*log(n) (BIC); -2 would be AIC}
 
