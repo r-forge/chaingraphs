@@ -7,7 +7,7 @@
 fitfunc(fmla, data = data, type, currfamily = currfamily, ...)
 }
 \arguments{
-\item{fmla}{an R fmla}
+\item{fmla}{an R formula}
 
 \item{data}{the data frame to take the variables from}
 

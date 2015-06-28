@@ -1,3 +1,4 @@
+0.0-3: Added examples with formula, updated DESCRIPTION
 
 0.0-2: Added formula interface and a way to scale the inputs variables. Old way with var.frames is still supported; new argument vartypes which allows to specifiy other types as the automatic detection of vartypes for metric variables is crude.  
 

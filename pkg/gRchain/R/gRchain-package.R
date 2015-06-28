@@ -1,4 +1,4 @@
-#' gRchain: Chain graph models in R 
+#' gRchain: Chain Graph Models in R 
 #' 
 #' Fits (block) chain graph models. The package contains various functions, wrappers, methods and classes for fitting, plotting and displaying different chain graph models. Currently the Cox Wermuth (1996) strategy is implemented based on the description in Caputo et al. (1997) together with some liberal interpretations of details by the package authors. Traceable regressions will follow.   
 #'
@@ -32,14 +32,14 @@
 #' \item Wurzer, M. \& Hatzinger, R. (2013). Using Graphical Models in Microsimulation. In C. O'Donoghue (ed.), \emph{New Pathways In Microsimulation}. Ashgate Publishing.
 #' }
 #' 
-#'Authors: Thomas Rusch, Marcus Wurzer, Reinhold Hatzinger
-#'Contributors: Kathrin Gruber
+#' Authors: Thomas Rusch, Marcus Wurzer, Reinhold Hatzinger
+#' Contributors: Kathrin Gruber
 #' 
-#'Maintainer: Thomas Rusch
+#' Maintainer: Thomas Rusch
 #'
 #'
 #' @examples
-#'
+#' 
 #' data(cmc)
 #' data(cmc_prep)
 #' #this is a 5 block model with age being
@@ -50,13 +50,17 @@
 #' res_cmc <- coxwer(var.frame=cmc_prep, data=cmc)
 #' print(res_cmc) #Prints adjacency matrix
 #' summary(res_cmc,target="contraceptive") #model path to "contraceptive" as the target variable
-#' plot(res_cmc)
 #'
-#'#Using a formula
+#' #Using a formula
+#' 
 #' res_cmc2<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, data=cmc) #vartype is automatically detected which is crude for non-factors
-#'#Using a formula and specifying the vartype
-#'#(so the algorithm can use better models for the metric/continuous variables) 
+#' 
+#' #Using a formula and specifying the vartype
+#' #(so the algorithm can use better models for the metric/continuous variables)
+#'
 #' res_cmc3<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, vartype=c("cate","count","bin","ord","bin","bin","ord","ord","ord","metric"), data=cmc)
+#'
+#' plot(res_cmc3)
 #' 
 #' @docType package
 #' @name gRchain
