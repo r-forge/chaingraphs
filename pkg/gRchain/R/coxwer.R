@@ -1,4 +1,4 @@
-#' the fitting wrapper for coxwer
+#' Fitting wrapper for coxwer
 #'
 #' @param fmla an R formula
 #' @param data the data frame to take the variables from
@@ -27,6 +27,8 @@ fitfunc <- function(fmla, data=data, type, currfamily=currfamily,...)
    }
 
 
+#' Fitting Chain Graph Models
+#'
 #' A function to fit a block recursive chain graph model in R following the outlines of Cox & Wermuth 1996 and Caputo et al 1997; some adaptions made by us
 #'
 #'
@@ -46,6 +48,26 @@ fitfunc <- function(fmla, data=data, type, currfamily=currfamily,...)
 #' 
 #' @return an object of class cw which contains a list of fitted models, the variable frame and the fitted adjacency matrix
 #'
+#' @examples
+#' data(cmc)
+#' #this is a 5 block model with age being
+#' #purely explanatory (block 5) and nRchild and
+#' #contraceptive being purely the targets (block 1)
+#'
+#' #Using a var.frame
+#' data(cmc_prep)
+#' cmc_prep
+#' res_cmc <- coxwer(var.frame=cmc_prep, data=cmc)
+#' print(res_cmc) #Prints adjacency matrix
+#' summary(res_cmc,target="contraceptive") #model path to "contraceptive" as the target variable
+#'
+#' #Using a formula and autdetection for models
+#' res_cmc2<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, data=cmc) #vartype is automatically detected which is crude for non-factors
+#' 
+#' #Using a formula and specifying the vartype
+#' #so the algorithm can use better models for the metric/continuous variables
+#' res_cmc3<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, vartype=c("cate","count","bin","ord","bin","bin","ord","ord","ord","metric"), data=cmc)
+#' 
 #' @export
 #' @seealso \code{\link{prep_coxwer}} \code{\link{cmc_prep}}
 #' 
@@ -53,7 +75,7 @@ coxwer<-function(fmla, data, var.frame, vartype, automatch=FALSE, pen, signif=0.
 #means that variable type is automatically detected from var.type
     
 #FIXME: Implement the correction as suggested by Stat Med. 1991 May;10(5):697-709.The effects of transformations and preliminary tests for non-linearity in regression. Grambsch PM, O'Brien PC
-#FIXME Use association within blocks rather than regression and inverse regression within block?  
+#FIXME: Use association within blocks rather than regression and inverse regression within block?  
 #FIXME: Overall model fit index
 #FIXME: Add Survreg and beta etc.  
 #FIXME: add AIC instead of p vals?

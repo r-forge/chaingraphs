@@ -2,7 +2,7 @@
 % Please edit documentation in R/coxwer.R
 \name{coxwer}
 \alias{coxwer}
-\title{A function to fit a block recursive chain graph model in R following the outlines of Cox & Wermuth 1996 and Caputo et al 1997; some adaptions made by us}
+\title{Fitting Chain Graph Models}
 \usage{
 coxwer(fmla, data, var.frame, vartype, automatch = FALSE, pen,
   signif = 0.01, contrasts = c("contr.treatment", "contr.treatment"),
@@ -41,6 +41,26 @@ an object of class cw which contains a list of fitted models, the variable frame
 }
 \description{
 A function to fit a block recursive chain graph model in R following the outlines of Cox & Wermuth 1996 and Caputo et al 1997; some adaptions made by us
+}
+\examples{
+data(cmc)
+#this is a 5 block model with age being
+#purely explanatory (block 5) and nRchild and
+#contraceptive being purely the targets (block 1)
+
+#Using a var.frame
+data(cmc_prep)
+cmc_prep
+res_cmc <- coxwer(var.frame=cmc_prep, data=cmc)
+print(res_cmc) #Prints adjacency matrix
+summary(res_cmc,target="contraceptive") #model path to "contraceptive" as the target variable
+
+#Using a formula and autdetection for models
+res_cmc2<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, data=cmc) #vartype is automatically detected which is crude for non-factors
+
+#Using a formula and specifying the vartype
+#so the algorithm can use better models for the metric/continuous variables
+res_cmc3<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, vartype=c("cate","count","bin","ord","bin","bin","ord","ord","ord","metric"), data=cmc)
 }
 \seealso{
 \code{\link{prep_coxwer}} \code{\link{cmc_prep}}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/coxwer.R
 \name{fitfunc}
 \alias{fitfunc}
-\title{the fitting wrapper for coxwer}
+\title{Fitting wrapper for coxwer}
 \usage{
 fitfunc(fmla, data = data, type, currfamily = currfamily, ...)
 }
@@ -21,6 +21,6 @@ fitfunc(fmla, data = data, type, currfamily = currfamily, ...)
 a fitted model of either class multinom (categorical type) or polr (ordinal type) or glm.nb (count type) or glm (for type being metric or positive or so)
 }
 \description{
-the fitting wrapper for coxwer
+Fitting wrapper for coxwer
 }
 
