@@ -2,11 +2,11 @@
 title: "How to use gRchain"
 author: "Thomas Rusch"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output: rmarkdown::pdf_document
 vignette: >
-  %\VignetteIndexEntry{Use-gRchain}
+  %\VignetteIndexEntry{How to use gRchain}
   %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+  \usepackage[utf8]{inputenc}
 ---
 
 This is a short document intended to introduce the reader into the usage of the gRchain package. Currently, it supports block recursive chain graph models (Cox & Wermuth, 1996) by via the main function `coxwer()`.  
