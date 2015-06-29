@@ -51,22 +51,42 @@ fitfunc <- function(fmla, data=data, type, currfamily=currfamily,...)
 #' @examples
 #' data(cmc)
 #' #this is a 5 block model with age being
-#' #purely explanatory (block 5) and nRchild and
+#' #purely explanatory (block 5) and nrChild and
 #' #contraceptive being purely the targets (block 1)
 #'
+#' #Using a formula and autdetection for models
+#' #vartype is automatically detected which is crude for non-factors
+#' res_cmc2<-coxwer(contraceptive + nrChild ~                          #block 1 - purely targets 
+#'                  mediaExp ~                                         #block 2
+#'                  solIndex ~                                         #block 3 
+#'                  wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ #block 4
+#'                  age,                                               #block 5 - purely explanatory
+#'                  data=cmc) 
+#' 
+#' print(res_cmc2) #Prints adjacency matrix
+#' summary(res_cmc2,target="nrChild") #model path to "contraceptive" as the target variable
+#'
+#' \dontrun{
+#' #Using a formula and specifying the vartype
+#' #so the algorithm can use better models for the metric/continuous variables
+#' #(here Poisson model for nrChild instead of OLS)
+#' res_cmc3<-coxwer(contraceptive + nrChild ~
+#'                  mediaExp ~
+#'                  solIndex ~
+#'                  wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~
+#'                  age,
+#'                  vartype=c("cate","count","bin","ord","bin","bin","ord","ord","ord","metric"),
+#'                 data=cmc)
+#'summary(res_cmc3,target="nrChild")
+#' 
 #' #Using a var.frame
+#' #cmc_prep<-prep_coxwer(cmc)
 #' data(cmc_prep)
 #' cmc_prep
 #' res_cmc <- coxwer(var.frame=cmc_prep, data=cmc)
-#' print(res_cmc) #Prints adjacency matrix
-#' summary(res_cmc,target="contraceptive") #model path to "contraceptive" as the target variable
-#'
-#' #Using a formula and autdetection for models
-#' res_cmc2<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, data=cmc) #vartype is automatically detected which is crude for non-factors
+#'}
 #' 
-#' #Using a formula and specifying the vartype
-#' #so the algorithm can use better models for the metric/continuous variables
-#' res_cmc3<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, vartype=c("cate","count","bin","ord","bin","bin","ord","ord","ord","metric"), data=cmc)
+
 #' 
 #' @export
 #' @seealso \code{\link{prep_coxwer}} \code{\link{cmc_prep}}
@@ -188,7 +208,7 @@ modList <- NULL
 
 #FIXME: insert some sanity checks
 #Check whether any variable is not specified as a family type for metric variables 
-if(any(c("metric","continuous") %in% var.frame[["type"]]) && !isTRUE(silent)) warning(paste("Some models for continuous/metric variables are not further specified. Ordinary least squares estimation is used by default. You can specify a different model type with the 'vartype' argument."))
+if(any(c("metric","continuous") %in% var.frame[["type"]]) && !isTRUE(silent)) message(paste("Some models for continuous/metric variables are not further specified. Ordinary least squares estimation is used by default. You can specify a different model type with the 'vartype' argument."))
 
 # initially increment working block numbers
 var.frame$wblock <- var.frame$block + 1
@@ -456,10 +476,10 @@ adjmatrix<-function(x){
 #' @export
 summary.cw <- function(object, target=NULL, vframe=FALSE, adj=FALSE, ...){  
   if(!is.null(target)){
-    if(target=="all") target <- rownames(object$vframe)
+    if(any(target=="all")) target <- rownames(object$vframe)
     for (i in target){
       if (is.numeric(i)) var<-names(object$modList[i]) else var<-i
-      cat("---------- Summary for dependent variable:", var, "----------\n")
+      cat("---------- Summary for target variable:", var, "----------\n")
     #  if (inherits(obj$modList[[i]]$model,"multinom")) {    #CHANGE: TR added multinom
     #    print(summary(obj$modList[[i]]$model))
     #  } else {
@@ -490,7 +510,7 @@ predict.cw <- function(object, target, newdata, type , silent=FALSE, ...){
   out <- list()
   if (missing(type)) type <- character(length(target))
     for (i in target) {
-    if(!silent)  cat("---------- Predicting dependent variable:", i, "----------\n")
+    if(!silent)  cat("---------- Predicting target variable:", i, "----------\n")
       if(isTRUE(all.equal(type[grep(i,target,fixed=TRUE)],""))) {
         if (inherits(object$modList[[i]]$model,"glm")) {
           type[grep(i,target,fixed=TRUE)] <- "response"

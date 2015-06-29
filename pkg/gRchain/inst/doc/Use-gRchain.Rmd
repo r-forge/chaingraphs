@@ -1,0 +1,239 @@
+---
+title: "How to use gRchain"
+author: "Thomas Rusch"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Use-gRchain}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This is a short document intended to introduce the reader into the usage of the gRchain package. Currently, it supports block recursive chain graph models (Cox & Wermuth, 1996) by via the main function `coxwer()`.  
+
+## Introduction 
+In complex research problems that involve a large number of potentially important variables or feature a complicated dependence structure, the joint probability distribution of the involved random variables can only be unsatisfactorily modelled with classical statistical models. Often some structure in the joint distribution allows to factorize it into conditionally independent components which gave rise to a class of models known as Graphical Models. By representing the joint distribution as a graph with nodes and edges, Graphical Models can exploit possible conditional independence structures in the joint distribution and allow restoring the joint distribution from the components.
+
+A subclass of Graphical Models, Chain Graph Models, can be of particular interest for problems. A chain graph is a graph which may have both directed and undirected edges but is devoid of any directed cycles. In these models, a researcher can use substantive knowledge to categorize the variables as purely explanatory (predictor), purely dependent or target (response) or intermediate (response and predictor in turn). Each of these variables is assigned to a certain block, based on a partial ordering of the variables, meaning that the ordering is present between blocks but not within blocks. This approach leads to a chain of relationships between the different variables.
+
+The challenging task of fitting a full Chain Graph Model to the data is facilitated by the factorization property which allows maximizing the joint likelihood by reducing the problem to maximizing the likelihood for each factorized submodel. However, in case of different variable types in the same block (e.g., metric and categorical variables) ML estimation using the direct factorization strategy often does not converge or can computationally be very expensive. As a remedy, Cox & Wermuth (1996) propose the heuristic usage of a system of univariate models for each factorized component. 
+
+In this vignette we introduce an R implementation of the Cox-Wermuth selection strategy that allows to fit a Chain Graph Model for metric and categorical random variables from exponential families and thus incorporates the class of Generalized Linear Models in the chain. For illustration we apply the procedure to a highly multivariate data set that features many different types of variables.             
+
+## Graphical Models 
+Graphical models (GM) allow multivariate analysis of complex dependency structures. They are probability distributions over a multidimensional space encoded by graphs (as a set of vertices/variables, $V$, and a set of edges/relationships between variables, $E$). There are different types: 
+
+* Undirected GM (e.g., Markov random fields)
+* Directed GM  (e.g., Bayesian Networks, DAG)
+* Chain GM
+
+GM represent multivariate dependencies by conditional dependence and independence statements. Thus they can help in reducing overall complexity and allow model formulation, identification and selection. 
+
+A simple graphical model (a Markov random field):
+
+![Undirected Graphical Model](gm1.pdf)      
+
+In GM the Markov property of graphs allows to factorize the distribution $F_V$ into a set of conditional distributions, e.g., for $V=\{A,B,C,D\}$ by way of densities: $f_V=f_{A|B} \times f_{B|C} \times f_{C|D} \times f_D$. Thus the problem of fitting graphical models effectively reduces to estimating a series of conditional distributions. 
+
+
+## Chain Graph Models
+Chain graph models (CGM) are a mixture of directed and undirected graphical models. They are particularly interesting for social and behavioral sciences (observational studies, complex multivariate dependencies, existing substantive knowledge). In CGM, all variables are assigned to **boxes** (disjoint variable subsets $V_t, V=\bigcup_t V_t$ by theory or substantive knowledge. Between boxes exist **directed** edges, within boxes the edges are **undirected**,
+
+Two types of CGM:
+
+* Univariate recursive regression graph model (URRG; one variable per block)  
+* Joint response chain graph model (JRCG; more than one variable per block)
+
+### Factorization
+A joint response chain graph model:
+
+![Joint Response Chain Graph Model](cgm1.pdf) 
+
+In CGM factorization happens at least **recursively between blocks**: $f_{V}=f_{V_{T}|{V_{T-1},\dots, V_1}} \times f_{V_{T-1}|{V_{T-2},\dots, V_1}} \times \dots \times f_{V_1}$. Possibly additional conditional independence by missing edges, e.g.,  for the above graph $f_{V}=f_{F| C,E,D,A,B} \times f_{C,E,D|A,B} \times f_{A,B}=f_{F|C,E} \times f_{C,D|A,B} \times f_{E|B} \times f_{A,B}$.
+
+### Estimation
+For CGM there are no theoretical restrictions on the form of the conditional distributions (though usually conditional Gaussian distributions; Lauritzen \& Wermuth, 1989). In particular variable types can be of **mixed type within and between boxes** (discrete and continuous components). General algorithms for computing estimates in every CGM under every possible variable type specification is challenging. One can attempt to fit the conditional distributions of the factorization with a **series of multiple univariate conditional regressions** (Wermuth \& Cox, 2001). These are called traceable regressions.    
+
+Cox & Wermuth (1996; see also Caputo et al., 1997) lay out ideas for a heuristic selection strategy to approximate the CGM by univariate conditional regressions which is implemented in `coxwer`. 
+
+The `coxwer` Selection Algorithm:
+
+* Start in the block with the lowest number 
+* Take one variable from that block. Fit main effects model with all the variables in the same block or higher block. 
+* Screen for quadratic effects (metric variables) and two-way interactions by adding of single terms. Retain the ones with an associated p-value < `signif`.
+* Fit the model with main and retained effects.
+* Use backward selection to reduce the model. We do this with an infomration Criterion (BIC by default).
+* Re-enter interactions for the terms that remain in the model. 
+* Use backward selection.
+* Re-enter quadratic terms for remaining effects.
+* Use backward selection.
+* If other variables in the same block: Repeat for them. Else: jump to the next higher block and repeat.  
+
+
+# The coxwer Functionality
+We implemented an algorithm based on the ideas of the Cox-Wermuth heuristic in R for approximate fitting of JRCG and URRG models.
+
+Currently, there are the following functions intended for the user:
+
+|Object                          | Description                                                                | 
+|:-------------------------------|:---------------------------------------------------------------------------|
+|`cw-class`                      | S3 class for objects from a Cox-Wermuth fit                                | 
+|`coxwer`                        | Fit a JRCG or a URRG via Cox-Wermuth selection strategy                    |
+|`summary, print, plot, predict` | S3 methods for class cw                                                    |
+|`adjmatrix`                     | Extracts the adjacency matrix                                              |
+|`write_cw`                      | Writes and saves the graph in igraph format                                | 
+|`prep_coxwer`                   | Setup of variable frame, block membership and variable type (interactive)  |
+
+
+## Using the \texttt{coxwer} Function
+There are two ways of using the coxwer function: either with a formula or with a var.frame. We will use the Contraceptive Method Choice (CMC) data set for illustration which is a subset of the 1987 National Indonesia Contraceptive Prevalence Survey (Lim et. al., 1999). Overall there are 1473 observations of married women on 10 variables:
+
+* Age (`age`; continuous)
+* Education (`wifeEdu`; ordinal 1=low, 2, 3, 4=high)
+* Husband's education (`husbEdu`; ordinal 1=low, 2, 3, 4=high)
+* Number of children ever born  (`nrChild`; count)
+* Religion (`wifeRel`; binary; 0=Non-Islam 1=Islam)
+* Wife's now working? (`wifeWork`; binary 0=Yes, 1=No)
+* Husband's occupation (`husbOcc`; categorical 1, 2, 3, 4)
+* Standard-of-living index (`solIndex`; ordinal 1=low, 2, 3, 4=high)
+* Media exposure (`mediaExp`; binary 0=Good, 1=Not good)
+* Contraceptive method used (`contraceptive`; categorical 1=No-use 2=Long-term 3=Short-term)
+
+We assume the following block structure:
+ 
+* Block 1 - Purely dependent (target) variables: contraceptive, nrChild
+* Block 2 - Intermediate variable: mediaExp 
+* Block 3 - Intermediate variable: solIndex 
+* Block 4 - Intermediate variables: wifeEdu, husbEdu, wifeRel, wifeWork, husbOcc
+* Block 5 - Purely explanatory variable: age 
+
+Blocks must always be numbered like this: Increasing integers starting from 1. The purely target variables are always in block 1, the purely explanatory variables are always in Block K where K is the highest block number (here 5). The blocks in between are labeled in the reverse direction of dependencies. We will abreviate this with Bx which stands for block x (Vx stands for variable x; so B5V2 is Block 5 Variable 2). Variables in BK have no antecedents (but possibly undirected dependencies within the block), variables in BK-1 have all variables in BK as antecedents and variables in BK-1 as possible undirected dependencies,  variables in BK-2 have all variables in BK and BK-1 as antecedents and variables in BK-2 as possible undirected dependencies and so on until variables in B1 which have all variables in higher numbered blocks as antecedents.   
+
+The model is therefore of this type (~ directed edge, + undirected edge; the brackets are there for easier readability)
+ 
+```
+(B1V1 + B1V2 + ...) ~ (B2V1 + B2V2 + ...) ~ (B3V1 + B3V2 + B3V3 + ...)
+```
+
+For the example it is 
+
+```
+B1V1 + B1V2 ~ B2V1 ~ B3V1 ~ B4V1 + B4V2 + B4V3 + B4V4 + B4V5 ~ B5V1
+```
+  
+### Fitting the model with a `var.frame`
+Here the `coxwer` argument is a variable frame and an observations $\times$ variables data frame. The variable frame defines the block and type of a variable. It must have the same row names as the data frame has column names. 
+
+```{r,echo=FALSE}
+library(gRchain)
+data(cmc_prep)
+```
+```{r}
+cmc_prep
+```
+The `prep_coxwer` function allows to define the variable frame interactively. 
+```{r,eval=FALSE}
+cmc_prep <- prep_coxwer(cmc)
+```
+Once the var.frame is set up one ca fit the model by 
+```{r,eval=FALSE}
+data(cmc)
+rescmc <- coxwer(var.frame=cmc_prep, data=cmc)
+```
+
+### Fitting the model with a formula
+The formula interface to coxwer basically allows to specifiy the directed dependencies between block with the operator `~` and the undirected within the block by `+`. The structure is therefore: 
+
+```
+B1V1 + B1V2 + ... ~  B2V1 + B2V2 + ... ~  B3V1 + B3V2 + B3V3 + ...
+```
+
+Or for the example 
+```
+contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age
+```
+
+One can the use the function with
+```{r,eval=FALSE}
+data(cmc)
+rescmc <- coxwer(contraceptive + nrChild ~			    #Block 1
+                 mediaExp ~    	 	    			    #Block 2
+                 solIndex ~ 		    			    #Block 3
+                 wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ #Block 4 
+                 age, 	   	      	      		  	    #Block 5
+                 data=cmc)
+```
+
+## Further arguments to `coxwer` 
+`coxwer` allows to specify further arguments:
+
+* `vartype`: This is an important argument especially for using the formual interface. When using the formula interface without a specified vartype , the function attempts to automatically detect the variable type from the data frame. This works fairly well for factors but is crude for metric variables. For teh latter it will always specify an OLS model. Setting vartype allows to fine tune the model used for the variables (see below). If this argumnet is used, then the order of characters in vartype must correspond to the variable in formula form left to right, or in var.frame form top to bottom.
+* `adjfile`: Save the adjacency matrix to a file.
+* `automatch`: Automatically assign the data type to the variables in the data frame according to variable type in the variable frame (the reverse of the autodetection)
+* `pen`, `signif`: Arguments for screening and model selection. `pen` is the penalty for the information criterion used in `stepAIC` and `signif` the significance level when screening for higher-order effects and non-linearities.   
+* `contrasts`: The contrasts to be used for categorical predictors. Defaults to dummy coding for ordered and unordered factors.
+*`silent`: Flag for whether model fitting progress should be printed. 
+
+Depending on the type of variable, `coxwer` can use different univariate models
+
+* For binary targets (`vartype="binary"`): binomial logistic models 
+`stats::glm(...,family=binomial,link=logit`
+* For unrestricted metric targets (`vartype="metric"`,`vartype="continuous"`): OLS/Gaussian linear models `stats::glm(...,family=gaussian,link=identity)`. When autodetection is done, this is used per default for every metric variable that is not further specified (message is printed in that case).  
+* For positive continuous targets (`vartype="gamma"`,`vartype="invgaussian"`): gamma or inverse Gaussian GLM `stats::glm(...,family=Gamma,link=inverse)` 
+`stats::glm(...,family=inverse.gaussian,link=1/mu^2` 
+* For count targets (`vartype="count"`,`vartype="odcount"`): Poisson or negative binomial loglinear models `stats::glm(...,family=poisson,link=log)` `MASS::glm.nb(...,link=log)` 
+* For categorical targets (`vartype="categorical"`,`vartype="factor"`): multinomial logistic models `nnet::multinom(...,link=logit)` 
+* For ordinal targets (`vartype="ordinal"`): proportional odds logistic models `MASS::polr(...,link=logit)`       
+
+Predictors we treat as metric or as ordered/unordered factors (dummy--treatment--coding by default).    
+
+Using exponential families with canonical links assures that properties of conditional Gaussian graphs are approximately retained even when fitted with the CW procedure. 
+
+## Worked Example
+We now fit the model to the cmc data by using the formula interface.
+
+```{r,warning=FALSE}
+data(cmc)
+rescmc <- coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ 
+                 wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, 
+                 data=cmc)
+```
+
+S3 methods are available. Print prints the adjacency matrix. 
+```{r}
+print(rescmc) 
+```
+One can summarize the object by extracting the model summaries for specific target variables by name or for all with `target="all"`. If no target is given, nothing is returned.  
+
+```{r}
+summary(rescmc,target=c("contraceptive","nrChild"))
+```
+
+We see that the model for `nrChild` is an OLS model (due to autodetection). But since `nrChild` is a count, it might be better to tell the function that. 
+
+```{r,warning=FALSE}
+data(cmc)
+rescmc <- coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ 
+                 wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, 
+                 vartype=c("cate","count","bin","ord","bin","bin",
+                           "ord","ord","ord","metric"), 
+                 data=cmc)
+```
+```{r}
+summary(rescmc,target=c("contraceptive","nrChild"))
+```
+
+We can use the `igraph` facilities to plot the model. After some tweeking and ordering the vertices according to the block structure we have 
+```{r,eval=FALSE}
+plot(rescmc)
+```
+
+![The fitted chain graph for the CMC data](cmcfin1.pdf)
+
+# References   
+* Caputo, A., Heinicke, A. & Pigeot, I. (1997). A graphical chain model derived from a model selection strategy for the sociologists graduates study. *Collaborative Research Center 386, Discussion Paper 73.*
+* Cox, D.  & Wermuth, N. (1996). *Multivariate Dependencies: Models, Analysis, Interpretation*. Florida:Chapman & Hall/CRC.
+* Cox, D.  & Wermuth, N. (2001). Joint response graphs and separation induced by triangular systems. *Research Report, Australian National University*.	
+* Lauritzen, S.  & Wermuth, N. (1989). Graphical models for associations between variables, some of which are qualitative and some quantitative. *The Annals of Statistics, 31--57.*
+*  Lim, T.-S., Loh, W.-Y. & Shih, Y.-S. (1999). A Comparison of Prediction Accuracy, Complexity, and Training Time of Thirty-three Old and New Classification Algorithms. *Machine Learning, 40, 203--238.*
+

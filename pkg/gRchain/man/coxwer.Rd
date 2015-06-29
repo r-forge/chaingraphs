@@ -45,22 +45,40 @@ A function to fit a block recursive chain graph model in R following the outline
 \examples{
 data(cmc)
 #this is a 5 block model with age being
-#purely explanatory (block 5) and nRchild and
+#purely explanatory (block 5) and nrChild and
 #contraceptive being purely the targets (block 1)
 
+#Using a formula and autdetection for models
+#vartype is automatically detected which is crude for non-factors
+res_cmc2<-coxwer(contraceptive + nrChild ~                          #block 1 - purely targets
+                 mediaExp ~                                         #block 2
+                 solIndex ~                                         #block 3
+                 wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ #block 4
+                 age,                                               #block 5 - purely explanatory
+                 data=cmc)
+
+print(res_cmc2) #Prints adjacency matrix
+summary(res_cmc2,target="nrChild") #model path to "contraceptive" as the target variable
+
+\dontrun{
+#Using a formula and specifying the vartype
+#so the algorithm can use better models for the metric/continuous variables
+#(here Poisson model for nrChild instead of OLS)
+res_cmc3<-coxwer(contraceptive + nrChild ~
+                 mediaExp ~
+                 solIndex ~
+                 wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~
+                 age,
+                 vartype=c("cate","count","bin","ord","bin","bin","ord","ord","ord","metric"),
+                data=cmc)
+summary(res_cmc3,target="nrChild")
+
 #Using a var.frame
+#cmc_prep<-prep_coxwer(cmc)
 data(cmc_prep)
 cmc_prep
 res_cmc <- coxwer(var.frame=cmc_prep, data=cmc)
-print(res_cmc) #Prints adjacency matrix
-summary(res_cmc,target="contraceptive") #model path to "contraceptive" as the target variable
-
-#Using a formula and autdetection for models
-res_cmc2<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, data=cmc) #vartype is automatically detected which is crude for non-factors
-
-#Using a formula and specifying the vartype
-#so the algorithm can use better models for the metric/continuous variables
-res_cmc3<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, vartype=c("cate","count","bin","ord","bin","bin","ord","ord","ord","metric"), data=cmc)
+}
 }
 \seealso{
 \code{\link{prep_coxwer}} \code{\link{cmc_prep}}

@@ -56,14 +56,25 @@ print(res_cmc) #Prints adjacency matrix
 summary(res_cmc,target="contraceptive") #model path to "contraceptive" as the target variable
 
 #Using a formula
-
-res_cmc2<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, data=cmc) #vartype is automatically detected which is crude for non-factors
-
+#vartype is automatically detected which is crude for non-factors
+res_cmc2<-coxwer(contraceptive + nrChild ~                          #block 1 - only targets
+                 mediaExp ~                                         #block 2
+                 solIndex ~                                         #block 3
+                 wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ #block 4
+                 age,                                               #block 5 - purely explanatory
+                 data=cmc)
+\dontrun{
 #Using a formula and specifying the vartype
 #(so the algorithm can use better models for the metric/continuous variables)
-
-res_cmc3<-coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, vartype=c("cate","count","bin","ord","bin","bin","ord","ord","ord","metric"), data=cmc)
+res_cmc3<-coxwer(contraceptive + nrChild ~
+                 mediaExp ~
+                 solIndex ~
+                 wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~
+                 age,
+                 vartype=c("cate","count","bin","ord","bin","bin","ord","ord","ord","metric"),
+                 data=cmc)
 
 plot(res_cmc3)
+}
 }
 
