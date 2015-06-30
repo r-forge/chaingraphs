@@ -37,7 +37,7 @@ fitfunc <- function(fmla, data=data, type, currfamily=currfamily,...)
 #' @param var.frame If no formula is given a variable frame with the following structure: First column are the variable names, second column are the variable types (one of categorical, ordinal, continuous, binary, count, odcount (overdispersed count), gamma or invgaussian, see also \code{\link{prep_coxwer}}), third column are the block which are labeled from left to right increasingly, so the left most block is 1 and then 2 and so forth; the block with purely dependent variable is block 1 the block with purely explanatory variables is the right most block. For an example see \code{\link{cmc_prep}}. If both formula and var.frame are given, var.frame takes precedence. 
 #' @param vartype (optional) the types of variables in data and formula; if formula is given but vartype is not, the function attempts to detect the type of variable and will select one of ordinal, categorical and continuous. The order of types in vartype is expected to be the order of variables in formula (from left to right) or in var.frame from top to bottom 
 #' @param automatch flag whether the function should match the variable type to the data object (TRUE if so); will override user specifications in var.frame; defaults to FALSE
-#' @param pen the penalty applied to the information criterion for variable selection; defaults to #parameters*log(n) (BIC); -2 would be AIC
+#' @param pen the penalty applied for the numbers of parameters to the information criterion for variable selection; defaults to log(n) (BIC); 2 would be AIC
 #' @param signif the significance level used in the tests for inclusion of higher order effects; defaults to 0.01
 #' @param contrasts which contrasts to use for ordinal and nominal predictors; defaults to treatment contrasts all around 
 #' @param scalepredictors whtehr and how to scale the predictors (no=no scaling, center=mean centering, scale=standardization (mean=0 and var=1) and normalize=scaling to [0,1])
@@ -101,11 +101,10 @@ coxwer<-function(fmla, data, var.frame, vartype, automatch=FALSE, pen, signif=0.
 #FIXME: add AIC instead of p vals?
 #FIXME: output such that we have CIs attached
 #FIXME: no $ reference but [[""]]
-#FIXME: perhaps use a bigger pval as a false positive is less of a problem if we later do stepAIC
 #FIXME: Add variable selection by L1 regularization next to stepAIC
 #FIXME: Make var.frame$type such that match.arg also works with factors
 #FIXME: Make var.frame$type such that automatic conversion to character 
-#FIXME check Kathis patch wegen restrictions (or better yet, make it proper)
+#FIXME check Kathis patch wegen restrictions 
   
 #require(MASS)
 #require(nnet)

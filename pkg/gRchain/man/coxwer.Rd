@@ -20,7 +20,7 @@ coxwer(fmla, data, var.frame, vartype, automatch = FALSE, pen,
 
 \item{automatch}{flag whether the function should match the variable type to the data object (TRUE if so); will override user specifications in var.frame; defaults to FALSE}
 
-\item{pen}{the penalty applied to the information criterion for variable selection; defaults to #parameters*log(n) (BIC); -2 would be AIC}
+\item{pen}{the penalty applied for the numbers of parameters to the information criterion for variable selection; defaults to log(n) (BIC); 2 would be AIC}
 
 \item{signif}{the significance level used in the tests for inclusion of higher order effects; defaults to 0.01}
 

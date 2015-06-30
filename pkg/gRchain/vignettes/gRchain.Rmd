@@ -2,7 +2,7 @@
 title: "How to use gRchain"
 author: "Thomas Rusch"
 date: "`r Sys.Date()`"
-output: rmarkdown::pdf_document
+output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{How to use gRchain}
   %\VignetteEngine{knitr::rmarkdown}
@@ -60,12 +60,12 @@ The `coxwer` Selection Algorithm:
 
 * Start in the block with the lowest number 
 * Take one variable from that block. Fit main effects model with all the variables in the same block or higher block. 
-* Screen for quadratic effects (metric variables) and two-way interactions by adding of single terms. Retain the ones with an associated p-value < `signif`.
+* Screen for quadratic effects (metric variables; orthogonal contrasts) and two-way interactions by adding of single terms. Retain the ones with an associated p-value < `signif` (defaults to 0.01).
 * Fit the model with main and retained effects.
-* Use backward selection to reduce the model. We do this with an infomration Criterion (BIC by default).
+* Use backward selection to reduce the model. We do this with an information Criterion (BIC by default).
 * Re-enter interactions for the terms that remain in the model. 
 * Use backward selection.
-* Re-enter quadratic terms for remaining effects.
+* Re-enter quadratic terms for remaining effects  (orthogonal contrasts).
 * Use backward selection.
 * If other variables in the same block: Repeat for them. Else: jump to the next higher block and repeat.  
 
@@ -109,7 +109,7 @@ We assume the following block structure:
 
 Blocks must always be numbered like this: Increasing integers starting from 1. The purely target variables are always in block 1, the purely explanatory variables are always in Block K where K is the highest block number (here 5). The blocks in between are labeled in the reverse direction of dependencies. We will abreviate this with Bx which stands for block x (Vx stands for variable x; so B5V2 is Block 5 Variable 2). Variables in BK have no antecedents (but possibly undirected dependencies within the block), variables in BK-1 have all variables in BK as antecedents and variables in BK-1 as possible undirected dependencies,  variables in BK-2 have all variables in BK and BK-1 as antecedents and variables in BK-2 as possible undirected dependencies and so on until variables in B1 which have all variables in higher numbered blocks as antecedents.   
 
-The model is therefore of this type (~ directed edge, + undirected edge; the brackets are there for easier readability)
+The model is therefore of this type (we use ~ for directed edges, and + for undirected edges; the brackets are there for easier readability)
  
 ```
 (B1V1 + B1V2 + ...) ~ (B2V1 + B2V2 + ...) ~ (B3V1 + B3V2 + B3V3 + ...)
@@ -121,26 +121,6 @@ For the example it is
 B1V1 + B1V2 ~ B2V1 ~ B3V1 ~ B4V1 + B4V2 + B4V3 + B4V4 + B4V5 ~ B5V1
 ```
   
-### Fitting the model with a `var.frame`
-Here the `coxwer` argument is a variable frame and an observations $\times$ variables data frame. The variable frame defines the block and type of a variable. It must have the same row names as the data frame has column names. 
-
-```{r,echo=FALSE}
-library(gRchain)
-data(cmc_prep)
-```
-```{r}
-cmc_prep
-```
-The `prep_coxwer` function allows to define the variable frame interactively. 
-```{r,eval=FALSE}
-cmc_prep <- prep_coxwer(cmc)
-```
-Once the var.frame is set up one ca fit the model by 
-```{r,eval=FALSE}
-data(cmc)
-rescmc <- coxwer(var.frame=cmc_prep, data=cmc)
-```
-
 ### Fitting the model with a formula
 The formula interface to coxwer basically allows to specifiy the directed dependencies between block with the operator `~` and the undirected within the block by `+`. The structure is therefore: 
 
@@ -164,21 +144,45 @@ rescmc <- coxwer(contraceptive + nrChild ~			    #Block 1
                  data=cmc)
 ```
 
+Note that when using the formula interface, it might be a good idea to specify the `vartype` argument (see below).
+
+### Fitting the model with a `var.frame`
+Here the `coxwer` argument is a variable frame and an observations $\times$ variables data frame. The variable frame defines the block and type of a variable. It must have the same row names as the data frame has column names. The var.frame must have the following structure: It needs two columns names `type` and `block`, which specify the variable type (and thus the model used; see below) and the `block` to which each variable belongs. The `rownames` of the var.frame must match the `colnames` of the data frame. `type` should be character (so use `stringsAsfactors=FALSE` when manually setting it up with `data.frame()`) and `block` must be whole numbers starting from 1 in increments of 1. Subsequently there is an example for the `cmc` data  
+
+```{r,echo=FALSE}
+library(gRchain)
+data(cmc_prep)
+```
+```{r}
+cmc_prep
+```
+The `prep_coxwer` function allows to define the variable frame interactively. 
+```{r,eval=FALSE}
+cmc_prep <- prep_coxwer(cmc)
+```
+Once the var.frame is set up one can fit the model by 
+```{r,eval=FALSE}
+data(cmc)
+rescmc <- coxwer(var.frame=cmc_prep, data=cmc)
+```
+
+
 ## Further arguments to `coxwer` 
 `coxwer` allows to specify further arguments:
 
-* `vartype`: This is an important argument especially for using the formual interface. When using the formula interface without a specified vartype , the function attempts to automatically detect the variable type from the data frame. This works fairly well for factors but is crude for metric variables. For teh latter it will always specify an OLS model. Setting vartype allows to fine tune the model used for the variables (see below). If this argumnet is used, then the order of characters in vartype must correspond to the variable in formula form left to right, or in var.frame form top to bottom.
+* `vartype`: This is an important argument especially for using the formual interface. When using the formula interface without a specified vartype , the function attempts to automatically detect the variable type from the data frame. This works fairly well for factors but is crude for metric variables. For the latter it will always specify an OLS model. Setting vartype allows to fine tune the model used for the variables (see below). If this argumnet is used, then the order of characters in vartype must correspond to the variable in formula from left to right, or in var.frame from top to bottom.
 * `adjfile`: Save the adjacency matrix to a file.
 * `automatch`: Automatically assign the data type to the variables in the data frame according to variable type in the variable frame (the reverse of the autodetection)
 * `pen`, `signif`: Arguments for screening and model selection. `pen` is the penalty for the information criterion used in `stepAIC` and `signif` the significance level when screening for higher-order effects and non-linearities.   
 * `contrasts`: The contrasts to be used for categorical predictors. Defaults to dummy coding for ordered and unordered factors.
+* `restr`: Allows to fix certain edges to 0, i.e., those edges are ignored for the model selection. It must be a binary matrix of the same dimension as the adjacency matrix between all variables where `0` stands for a dependency that is not considered, whereas `1` means fit that edge.
 *`silent`: Flag for whether model fitting progress should be printed. 
 
 Depending on the type of variable, `coxwer` can use different univariate models
 
 * For binary targets (`vartype="binary"`): binomial logistic models 
 `stats::glm(...,family=binomial,link=logit`
-* For unrestricted metric targets (`vartype="metric"`,`vartype="continuous"`): OLS/Gaussian linear models `stats::glm(...,family=gaussian,link=identity)`. When autodetection is done, this is used per default for every metric variable that is not further specified (message is printed in that case).  
+* For unrestricted metric targets (`vartype="metric"`, `vartype="continuous"`, `vartype="gaussian"`): OLS/Gaussian linear models `stats::glm(...,family=gaussian,link=identity)`. When autodetection is done, this is used per default for every metric variable that is not further specified (message is printed in that case).  
 * For positive continuous targets (`vartype="gamma"`,`vartype="invgaussian"`): gamma or inverse Gaussian GLM `stats::glm(...,family=Gamma,link=inverse)` 
 `stats::glm(...,family=inverse.gaussian,link=1/mu^2` 
 * For count targets (`vartype="count"`,`vartype="odcount"`): Poisson or negative binomial loglinear models `stats::glm(...,family=poisson,link=log)` `MASS::glm.nb(...,link=log)` 
@@ -203,13 +207,16 @@ S3 methods are available. Print prints the adjacency matrix.
 ```{r}
 print(rescmc) 
 ```
+
+It has to be read the following way: rows encode whether a directed edge from a row variable to a column variable exists. Then the entry is `1`, an edge from one variable to another; columns encode whether the variable has an edge coming towards it from a row. If it is `0` no edge exists. In the example, column ten (for age) has only `0` in the column as it is purely explanatory, so no edges lead to it. Conversely, it has edges that lead to all variables but `wifeWork` (seen in row 10). `wifeWork` is not explained by anything here (columns) but is associated with `nrChild`, and `wifeEdu`. Note that the adjacency matrix needs not be symmetric.  
+
 One can summarize the object by extracting the model summaries for specific target variables by name or for all with `target="all"`. If no target is given, nothing is returned.  
 
 ```{r}
 summary(rescmc,target=c("contraceptive","nrChild"))
 ```
 
-We see that the model for `nrChild` is an OLS model (due to autodetection). But since `nrChild` is a count, it might be better to tell the function that. 
+We see that the model for `nrChild` is an OLS model (due to autodetection). But since `nrChild` is a count it might be better to tell the function that. 
 
 ```{r,warning=FALSE}
 data(cmc)
@@ -227,8 +234,32 @@ We can use the `igraph` facilities to plot the model. After some tweeking and or
 ```{r,eval=FALSE}
 plot(rescmc)
 ```
-
 ![The fitted chain graph for the CMC data](cmcfin1.pdf)
+
+[//]: # We might have a theoretical reason assume that `mediaExp` has no bearing on `nrChild` so we could fix this edge to be zero _a priori_ with the `restr` argument which takes a binary matrix of edges that are fixed to zero.  In this case the adjacency matrix is a 10$\times$10 matrix, so we set that one up and fix the paths from `mediaExp` to `nrChil` to zero  
+
+```{r,echo=FALSE,eval=FALSE}
+restmat<-matrix(0,ncol=10,nrow=10)
+colnames(restmat)<-rownames(restmat)<-rownames(rescmc$AdjMat)
+restmat["mediaExp","nrChild"]<-1
+restmat["nrChild","mediaExp"]<-1
+```
+
+[//]: # This is then passed as the argument `restr`
+
+```{r,warning=FALSE,eval=FALSE,echo=FALSE}
+data(cmc)
+rescmc2 <- coxwer(contraceptive + nrChild ~ mediaExp ~ solIndex ~ 
+                 wifeRel + wifeWork + husbOcc + wifeEdu + husbEdu ~ age, 
+                 vartype=c("cate","count","bin","ord","bin","bin",
+                           "ord","ord","ord","metric"), restr=restmat,
+                 data=cmc)
+```
+
+```{r,eval=FALSE,echo=FALSE}
+summary(rescmc,target=c("contraceptive","nrChild"))
+```
+
 
 # References   
 * Caputo, A., Heinicke, A. & Pigeot, I. (1997). A graphical chain model derived from a model selection strategy for the sociologists graduates study. *Collaborative Research Center 386, Discussion Paper 73.*
