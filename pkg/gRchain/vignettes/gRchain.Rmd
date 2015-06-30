@@ -176,7 +176,7 @@ rescmc <- coxwer(var.frame=cmc_prep, data=cmc)
 * `pen`, `signif`: Arguments for screening and model selection. `pen` is the penalty for the information criterion used in `stepAIC` and `signif` the significance level when screening for higher-order effects and non-linearities.   
 * `contrasts`: The contrasts to be used for categorical predictors. Defaults to dummy coding for ordered and unordered factors.
 * `restr`: Allows to fix certain edges to 0, i.e., those edges are ignored for the model selection. It must be a binary matrix of the same dimension as the adjacency matrix between all variables where `0` stands for a dependency that is not considered, whereas `1` means fit that edge.
-*`silent`: Flag for whether model fitting progress should be printed. 
+* `silent`: Flag for whether model fitting progress should be printed. 
 
 Depending on the type of variable, `coxwer` can use different univariate models
 
