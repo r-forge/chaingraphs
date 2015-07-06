@@ -65,7 +65,13 @@ echo $contents; } ?>
 </table>
 
 <h3>Software:</h3>
-<p> The <strong>project summary page and the software</strong> you can find <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p>
+<p> The <strong>project summary page and the software</strong> you can usually find <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p> 
+
+<p>Until the current issues with R-Forge are fixed however, you can get package binaries here too:</p> 
+<dl>
+<li><a href="gRchain_current.tar.gz">gRchain_0.0-3 Package Source</>
+<li><a href="gRchain_current.zip">gRchain_0.0-3 for Windows</>  
+</dl>
 
 <h3>People:</h3>
 <dl>
