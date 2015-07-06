@@ -59,6 +59,7 @@ res_cmc2<-coxwer(contraceptive + nrChild ~                          #block 1 - p
 
 print(res_cmc2) #Prints adjacency matrix
 summary(res_cmc2,target="nrChild") #model path to "contraceptive" as the target variable
+predict(res_cmc2,target="nrChild") #predict method
 
 \dontrun{
 #Using a formula and specifying the vartype

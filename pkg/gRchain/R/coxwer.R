@@ -65,7 +65,8 @@ fitfunc <- function(fmla, data=data, type, currfamily=currfamily,...)
 #' 
 #' print(res_cmc2) #Prints adjacency matrix
 #' summary(res_cmc2,target="nrChild") #model path to "contraceptive" as the target variable
-#'
+#' predict(res_cmc2,target="nrChild") #predict method
+#' 
 #' \dontrun{
 #' #Using a formula and specifying the vartype
 #' #so the algorithm can use better models for the metric/continuous variables
@@ -502,7 +503,9 @@ summary.cw <- function(object, target=NULL, vframe=FALSE, adj=FALSE, ...){
 #' @param newdata new data frame 
 #' @param type what type of predictions are wanted (if missing it is "")
 #' @param silent Should info be printed (FALSE means yes)
-#' @param ... additional arguents passed to predict for the model classes 
+#' @param ... additional arguents passed to predict for the model classes
+#'
+#' @export
 predict.cw <- function(object, target, newdata, type , silent=FALSE, ...){
   if (missing(target)) target <- seq(1,length(object$modList),by=1)
   if (is.numeric(target)) target <- unlist(lapply(target,function(i) names(object$modList[i])))
@@ -563,7 +566,6 @@ plot.cw<-function(x,...){
 #' @import igraph
 #' 
 #' @export
-#' 
 #interactive plot
 write_cw<-function(obj,file,...){
    AA<-obj$A
