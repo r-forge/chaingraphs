@@ -236,6 +236,16 @@ plot(rescmc)
 ```
 ![The fitted chain graph for the CMC data](cmcfin1.pdf)
 
+
+With the `predict` method we can predict the contraceptive use of three fictious women:
+
+```{r} 
+newd<-data.frame(nrChild=c(4,0,1),age=c(50,23,35),husbOcc=factor(c(1,4,3),ordered=TRUE),mediaExp=factor(c(0,1,1)),solIndex=factor(c(2,4,1),ordered=TRUE),wifeRel=factor(c(1,0,1)),wifeWork=factor(c(0,1,0)),wifeEdu=factor(c(1,4,3),ordered=TRUE),husbEdu=factor(c(1,4,3),ordered=TRUE))
+predict(rescmc,target="contraceptive",newdata=newd,type="prob")
+```
+
+The first two women while being very different are both likely not to use contraceptives, whereas woman 3 is likely using short-term contraceptive.  
+
 [//]: # We might have a theoretical reason assume that `mediaExp` has no bearing on `nrChild` so we could fix this edge to be zero _a priori_ with the `restr` argument which takes a binary matrix of edges that are fixed to zero.  In this case the adjacency matrix is a 10$\times$10 matrix, so we set that one up and fix the paths from `mediaExp` to `nrChil` to zero  
 
 ```{r,echo=FALSE,eval=FALSE}
