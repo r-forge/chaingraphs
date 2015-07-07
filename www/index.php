@@ -69,8 +69,8 @@ echo $contents; } ?>
 
 <p>Until the current issues with R-Forge are fixed however, you can get package binaries here too:</p> 
 <dl>
-<li><a href="gRchain_current.tar.gz">gRchain_0.0-3 Package Source</>
-<li><a href="gRchain_current.zip">gRchain_0.0-3 for Windows</>  
+<li><a href="gRchain_current.tar.gz">gRchain Package Source</>
+<li><a href="gRchain_current.zip">gRchain for Windows</>  
 </dl>
 
 <h3>People:</h3>
