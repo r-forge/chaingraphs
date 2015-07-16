@@ -544,19 +544,25 @@ prep_coxwer <- function(data){
 
 #'S3 plot method;  Interactively plot the coxwer object 
 #' @param x an object of class cw
-#' @param ... further arguments to tkplot
+#' @param interactive should the plot be interactive (defaults to TRUE)
+#' @param ... further arguments to tkplot (if interactive) or to plot.igraph (if not interactive) 
 #'
 #' @import igraph 
 #' @export
 #interactive plot
-plot.cw<-function(x,...){
+plot.cw<-function(x,interactive=TRUE,...){
    AA<-x$A
    g<-igraph::graph.adjacency(AA)
    # labels fuer Punkte
-   # vnames<-substr(colnames(AA),2,999) # Variablennamen ohne "p"  #CHANGE: comment 
+   # vnames<-substr(colnames(AA),2,999) # Variablennamen ohne "p" 
    vnames<-colnames(AA)                
    V(g)$name<-vnames                  # einfuegen der labels in die grafik definition
-   igraph::tkplot(g,vertex.label=V(g)$name,...)   # plot der grafik g mit labels
+   if(interactive) {
+       igraph::tkplot(g,vertex.label=V(g)$name,...)   # plot der grafik g mit labels
+   }
+   else {
+       igraph::plot.igraph(g,vertex.label=V(g)$name,...)
+   }  
 }
 
 #' Write the coxwer adjacency matrix plot to a file

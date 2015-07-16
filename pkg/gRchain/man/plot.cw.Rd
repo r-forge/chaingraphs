@@ -4,12 +4,14 @@
 \alias{plot.cw}
 \title{S3 plot method;  Interactively plot the coxwer object}
 \usage{
-\method{plot}{cw}(x, ...)
+\method{plot}{cw}(x, interactive = TRUE, ...)
 }
 \arguments{
 \item{x}{an object of class cw}
 
-\item{...}{further arguments to tkplot}
+\item{interactive}{should the plot be interactive (defaults to TRUE)}
+
+\item{...}{further arguments to tkplot (if interactive) or to plot.igraph (if not interactive)}
 }
 \description{
 S3 plot method;  Interactively plot the coxwer object

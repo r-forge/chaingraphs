@@ -1,4 +1,6 @@
-0.0-4: Fixed a bug in predict.cw.
+0.0-4: Added an interactive flag to plot.cw (and a plot for non-interactive plotting). Thanks to Dave Tritchler for reporting it. 
+
+0.0-4: Fixed a bug in predict.cw. Thanks to Khawla Ghibri for reporting it. 
 
 0.0-3: Added examples with formula, updated DESCRIPTION. Included vingette.
 
